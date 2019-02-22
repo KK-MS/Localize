@@ -32,7 +32,7 @@
 static SOCKET s;
 static SOCKADDR_IN servaddr;
 
-int SocketUDP_RecvFrom(char *pDataBuf, int iDataSize,
+int SocketUDP_RecvFrom(SOCKET *phSock, char *pDataBuf, int iDataSize,
     sockaddr *pSockCliAddr, int *pSockSize) 
 {
   int iRetVal;
@@ -50,14 +50,14 @@ int SocketUDP_RecvFrom(char *pDataBuf, int iDataSize,
     iRxLen = iDataSize - iAccRxLen;
 
     if (iRxLen > MAX_UDP_DATA_SIZE) { iRxLen = MAX_UDP_DATA_SIZE; }
-	
-	printf(TAG_SOCK "RecvFrom: len:%d AccLen:%d\n", iRxLen, iAccRxLen);
-    //iRetVal = recvfrom(s, pRecvBuf, iRxLen, 0, pSockCliAddr, pSockSize);
-	iRetVal = recvfrom(s, pRecvBuf, iRxLen, 0, NULL, NULL);
+
+    //printf(TAG_SOCK "B4 RecvFrom: len:%d AccLen:%d\n", iRxLen, iAccRxLen);
+    iRetVal = recvfrom(*phSock, pRecvBuf, iRxLen, 0, pSockCliAddr, pSockSize);
     if (iRetVal < 0) { return -1; }
-    
+
     pRecvBuf  += iRetVal;
     iAccRxLen += iRetVal;
+    //printf(TAG_SOCK "A4 RecvFrom: len:%d AccLen:%d\n", iRxLen, iAccRxLen);
 
     if (iRetVal < iRxLen) { break; }
   }
@@ -65,15 +65,10 @@ int SocketUDP_RecvFrom(char *pDataBuf, int iDataSize,
   return iAccRxLen;
 }
 
-int SocketUDP_ClientRecv(char *pDataBuf, int iDataSize)
-{
-	return SocketUDP_RecvFrom(pDataBuf, iDataSize, NULL, NULL);
-}
-
-int SocketUDP_SendTo(char *pDataBuf, int iDataSize, 
+int SocketUDP_SendTo(SOCKET *phSock, char *pDataBuf, int iDataSize, 
     sockaddr *pSockClientAddr, int iSockSize) 
 {
-  
+
   int iRetVal;
 
   // Packet details
@@ -90,8 +85,8 @@ int SocketUDP_SendTo(char *pDataBuf, int iDataSize,
 
     if (iTxLen > MAX_UDP_DATA_SIZE) { iTxLen = MAX_UDP_DATA_SIZE; }
 
-    //iRetVal = sendto(s, pSendBuf, iTxLen, 0, pSockClientAddr, iSockSize);
-	iRetVal = sendto(s, pSendBuf, iTxLen, 0, NULL, 0);
+    //printf(TAG_SOCK "SendTo %l\n", iTxLen);
+    iRetVal = sendto(*phSock, pSendBuf, iTxLen, 0, pSockClientAddr, iSockSize);
     if (iRetVal < 0) { return -1; }
 
     pSendBuf  += iRetVal;
@@ -107,15 +102,21 @@ int SocketUDP_SendTo(char *pDataBuf, int iDataSize,
   return iAccTxLen;
 }
 
-int SocketUDP_ClientSend(char *pDataBuf, int iDataSize)
+int SocketUDP_ClientRecv(SOCKET *phSock, char *pDataBuf, int iDataSize)
 {
-	return SocketUDP_SendTo(pDataBuf, iDataSize, NULL, 0);
+  return SocketUDP_RecvFrom(phSock, pDataBuf, iDataSize, NULL, NULL);
 }
 
-int SocketUDP_Deinit()
+
+int SocketUDP_ClientSend(SOCKET *phSock, char *pDataBuf, int iDataSize)
+{
+  return SocketUDP_SendTo(phSock, pDataBuf, iDataSize, NULL, 0);
+}
+
+int SocketUDP_Deinit(SOCKET *phSock)
 {
   // deinit the network connection
-  closesocket(s);
+  closesocket(*phSock);
   WSACleanup();
 
   printf("localize network_deinit ends\n");
@@ -124,7 +125,8 @@ int SocketUDP_Deinit()
 }
 
 
-int SocketUDP_ClientInit()
+int SocketUDP_InitClient(SOCKET *phSock, SOCKADDR_IN *phServAddr,
+    int  iPortNum,   char *pServerIP)
 {
   WSADATA wsaData;
   int iRetVal;
@@ -133,20 +135,20 @@ int SocketUDP_ClientInit()
   iRetVal = WSAStartup(MAKEWORD(2, 2), &wsaData);
   if (iRetVal != 0) { goto ret_err; }
 
-  //Create socket
-  s = socket(AF_INET, SOCK_DGRAM, 0);
-  if (s == INVALID_SOCKET) { goto ret_err; }
+  // CREATE SOCKET and SAVE in module Object
+  *phSock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (*phSock == INVALID_SOCKET) { goto ret_err; }
 
   // IMP: to clear server addr 
-  memset(&servaddr, 0, sizeof(servaddr));
+  memset(phServAddr, 0, sizeof(SOCKADDR_IN));
 
-  servaddr.sin_family      = AF_INET;
-  servaddr.sin_port        = htons(INPUT_SERVER_PORT); //Port to connect on
-  servaddr.sin_addr.s_addr = inet_addr(INPUT_SERVER_IP);
-  servaddr.sin_port        = IPPROTO_UDP;
+  phServAddr->sin_family      = AF_INET;
+  phServAddr->sin_port        = htons(iPortNum); //Port to connect on
+  phServAddr->sin_addr.s_addr = inet_addr(pServerIP);
+  phServAddr->sin_port        = IPPROTO_UDP;
 
   // connect to server 
-  iRetVal = connect(s, (struct sockaddr *)&servaddr, sizeof(servaddr));
+  iRetVal = connect(*phSock, (struct sockaddr *)phServAddr, sizeof(SOCKADDR_IN));
   if (iRetVal < 0) { goto ret_err; }
 
   return 0;
@@ -156,7 +158,6 @@ ret_err:
   return -1;
 }
 
- 
 int SocketUDP_ServerInit()
 {
   WSADATA wsaData;
@@ -192,7 +193,5 @@ int SocketUDP_ServerInit()
 
   return 0;
 }
-
-
 
 

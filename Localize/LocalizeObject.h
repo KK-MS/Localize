@@ -13,6 +13,13 @@
 // MACROS
 #define Localize_QUALITY_VALUE (95u) // Quality percentage
 
+typedef struct SockInterfaceStruct {
+  SOCKET      hSock;
+  SOCKADDR_IN hServAddr;
+
+  int    iPortNum;  
+  char   cIPAddr[16]; // IP4 xxx.xxx.xxx.xxx
+} SockObject;
 //
 // Localize needs:
 // 1. Metadat from IMU and Stereo
@@ -35,9 +42,9 @@ typedef struct LocalizeObjectStruct {
   
   // INTERFACING Variables
   // Socket static variable
-  SOCKET hSockStereo;
-  SOCKET hSockMap;
-  SOCKET hSockIMU;
+  SockObject hSockStereo;
+  SockObject hSockMap;
+  SockObject hSockIMU;
 
 } LocalizeObject;
 
@@ -69,10 +76,10 @@ int SocketUDP_RecvFrom(char *pBuf, int iSize, sockaddr *pSockClientAddr,
 	int *pSockSize);
 int SocketUDP_SendTo(char *pBuf, int iSize, sockaddr *pSockClientAddr,
 	int iSockSize);
-int SocketUDP_Deinit();
+int SocketUDP_Deinit(SOCKET*);
 int SocketUDP_ClientInit();
 int SocketUDP_ServerInit();
-int SocketUDP_ClientRecv(char *pDataBuf, int iDataSize);
-int SocketUDP_ClientSend(char *pDataBuf, int iDataSize);
-
+int SocketUDP_ClientRecv(SOCKET* , char* , int );
+int SocketUDP_ClientSend(SOCKET* , char* , int );
+int SocketUDP_InitClient(SOCKET* , SOCKADDR_IN* ,int ,char* );
 

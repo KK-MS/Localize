@@ -137,6 +137,7 @@ void LocalizeExecute_Scheduler(void *param)
 #endif
 		ImageShowDebug(pLocalizeObject);
 
+        //waitKey(0); // For debug each frame-by-frame
 		//  wait until ESC key
 		if (cv::waitKey(10) == 27) { // delay: Tune it.
 			break;

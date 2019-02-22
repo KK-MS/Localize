@@ -54,13 +54,14 @@ int file_write(std::vector<unsigned char> &buf) {
   return 0;
 }
 
-int LocalizeInput_GetStream(LocalizeObject *pLocalizeObject)
+int LocalizeInput_GetStream(LocalizeObject *pLocObj)
 {
   int iRetVal;
  
   // Network related variables
-  sockaddr sockClientAddr;
-  int iLenSockClient = sizeof(sockaddr_in);
+  //sockaddr sockClientAddr;
+  //int iLenSockClient = sizeof(sockaddr_in);
+  SOCKET *phSock;
   int iPktLen;
   char *pPktBuf;
 
@@ -68,29 +69,32 @@ int LocalizeInput_GetStream(LocalizeObject *pLocalizeObject)
   char ucReqMsg[11] = REQ_STREAM; // +1 to add null at last
 
   // Packet details
-  StereoMetadata *pStereoMeta;
+  //StereoMetadata *pStereoMeta;
   StereoPacket   *pStereoPkt;
   LocalizePacket *pLocPkt;
   unsigned char  *pFrameL;
   unsigned char  *pFrameR;
 
   // Assign the object pointers
-  pStereoPkt = pLocalizeObject->pStereoPacket;
-  pFrameL    = pLocalizeObject->pFrameLeft ;
-  pFrameR    = pLocalizeObject->pFrameRight;
-  pLocPkt    = pLocalizeObject->pLocalizePacket;
-  pStereoMeta = &(pStereoPkt->stMetadata.stStereoMetadata);
+  pStereoPkt = pLocObj->pStereoPacket;
+  pFrameL    = pLocObj->pFrameLeft ;
+  pFrameR    = pLocObj->pFrameRight;
+  pLocPkt    = pLocObj->pLocalizePacket;
+  phSock     = &(pLocObj->hSockStereo.hSock);
+
+  // streaming buffer address and its length
   pPktBuf = (char *)pStereoPkt;
   iPktLen = sizeof(StereoPacket);
+  //pStereoMeta = &(pStereoPkt->stMetadata.stStereoMetadata);
 
   // SEND THE REQUEST FOR STEREO PACKET
   //iRetVal = SocketUDP_SendTo(ucReqMsg, sizeof(ucReqMsg),  &sockClientAddr, iLenSockClient);
-  iRetVal = SocketUDP_ClientSend(ucReqMsg, sizeof(ucReqMsg));
+  iRetVal = SocketUDP_ClientSend(phSock, ucReqMsg, sizeof(ucReqMsg));
   if (iRetVal < 0) { goto ret_err; }
 
   // RECEIVE STEREO PACKET DATA
   //iRetVal = SocketUDP_RecvFrom(pPktBuf, iPktLen, &sockClientAddr, &iLenSockClient);
-  iRetVal = SocketUDP_ClientRecv(pPktBuf, iPktLen);
+  iRetVal = SocketUDP_ClientRecv(phSock, pPktBuf, iPktLen);
   if (iRetVal < 0 ) { goto ret_err; }
 
   return 0;
@@ -101,27 +105,39 @@ ret_err:
 }
 
 
-int LocalizeInput_Deinit(LocalizeObject *ptr_localize_object)
+int LocalizeInput_Deinit(LocalizeObject *pLocObj)
 {
+  // Socket interfaces
+  SOCKET      *phSock;
+
+  phSock     = &pLocObj->hSockStereo.hSock;
+  SocketUDP_Deinit(phSock);
 
 #ifdef DEBUG_OUTPUT_FILE
   myFile.close();
 #endif // DEBUG_OUTPUT_FILE
 
-  SocketUDP_Deinit();
-
   return 0;
 }
 
-int LocalizeInput_Init(LocalizeObject *pLocalizeObject)
+int LocalizeInput_Init(LocalizeObject *pLocObj)
 {
- // INPUT StereoPacket.
+
+  int iRetVal = 0;
+
+  // INPUT StereoPacket.
   StereoMetadata *pStereoMeta;
   StereoPacket   *pStereoPkt;
   LocalizePacket *pLocPkt;
   unsigned char  *pFrameL;
   unsigned char  *pFrameR;
  
+  // Socket interfaces
+  SOCKET      *phSock;
+  SOCKADDR_IN *phServAddr;
+  int         iPortNum;  
+  char        cIPAddr[16];
+
   printf("In LocalizeInput_Init\n");
 
   // TODO: Ring buffer
@@ -148,21 +164,34 @@ int LocalizeInput_Init(LocalizeObject *pLocalizeObject)
 	printf("Error: malloc\n"); return -1; }
 
   // fill the object
-  pLocalizeObject->pStereoPacket   = pStereoPkt;
-  pLocalizeObject->pFrameLeft      = pFrameL; 
-  pLocalizeObject->pFrameRight     = pFrameR;
-  pLocalizeObject->pLocalizePacket = pLocPkt;
+  pLocObj->pStereoPacket   = pStereoPkt;
+  pLocObj->pFrameLeft      = pFrameL; 
+  pLocObj->pFrameRight     = pFrameR;
+  pLocObj->pLocalizePacket = pLocPkt;
+
+
+#if 1
+  phSock     = &pLocObj->hSockStereo.hSock;
+  phServAddr = &pLocObj->hSockStereo.hServAddr,
+  iPortNum   = SOCK_PORT_STEREO;
+  memcpy(cIPAddr, SOCK_IP_STEREO, strlen(SOCK_IP_STEREO));
+
+  iRetVal = SocketUDP_InitClient(phSock, phServAddr, iPortNum, cIPAddr);
+
+#else
+  iRetVal = SocketUDP_ClientInit();
+#endif 
+  if (iRetVal != 0) {
+    printf("Error: In SocketUDP_ClientInit\n");
+    return -1;
+  }
+
+  printf("SocketUDP_ClientInit... OK\n");
 
   // Note: OUTPUT buffer is within StereoPacket Metadata
 #ifdef DEBUG_OUTPUT_FILE
   file_open();
 #endif // DEBUG_OUTPUT_FILE
-
-  if (SocketUDP_ClientInit() != 0) {
-    printf("Error: In SocketUDP_ClientInit\n");
-    return -1;
-  }
-  printf("SocketUDP_ClientInit... OK\n");
 
   return 0;
 }

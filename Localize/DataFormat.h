@@ -15,10 +15,10 @@
 
 // Network Socket details
 #define SOCK_PORT_STEREO (27015)
-#define SOCK_PORT_MAPSER (27016)
+#define SOCK_PORT_GTMAP  (27016)
 #define SOCK_PORT_IMU    (27017)
 #define SOCK_IP_STEREO   "127.0.0.1" 
-#define SOCK_IP_MAPSER   "127.0.0.1" 
+#define SOCK_IP_GTMAP    "127.0.0.1" 
 #define SOCK_IP_IMU      "127.0.0.1" 
 
 // Request tags
@@ -27,6 +27,7 @@
 #define REQ_IMAGES       "stereo_images"
 #define REQ_FRAME_LEFT   "frame_left"
 #define REQ_FRAME_RIGHT  "frame_right"
+#define REQ_TRAFFISIGNS  "trafficSigns"
 #define MAX_REQ_SIZE MAX_FRAME_SIZE
 
 typedef unsigned char uchar;

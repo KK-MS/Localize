@@ -114,13 +114,17 @@ void LocalizeExecute_Scheduler(void *param)
 
 	while (1) {
 
+		printf(TAG_LOC "LocalizeInput_GetStream\n");
 		// INPUT: Metadata + JPEG Frames (Right & Left)
 		iRetVal = LocalizeInput_GetStream(pLocalizeObject);
 		if (iRetVal) { goto err_ret; }
-
+		printf(TAG_LOC "LocalizeProcess_JpegToRaw\n");
 		iRetVal = LocalizeProcess_JpegToRaw(pLocalizeObject);
 		if (iRetVal) { goto err_ret; }
-		
+		printf(TAG_LOC "LocalizeInput_GetMapObjects\n");
+		iRetVal = LocalizeInput_GetMapObjects(pLocalizeObject);
+		if (iRetVal) { goto err_ret; }
+
 #if 0
 		// GET METADATA
 		if (localize_input_request_metadata(req_meta, res_meta, len_meta) < 0) {
@@ -150,7 +154,7 @@ err_ret:
 	printf("%s: thread closing: %d\n", __func__, iRetVal);
 }
 
-int localize_terminate()
+int LocalizeExecute_Terminate()
 {
 	printf(TAG_LOC "In localize_terminate\n");
 

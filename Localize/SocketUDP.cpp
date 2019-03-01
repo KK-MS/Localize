@@ -13,20 +13,17 @@
 #include <ws2tcpip.h> // getaddrinfo, includes #include <winsock2.h>
 #include <stdio.h>
 
+#include "SocketUDP.h"
+
 #pragma comment (lib, "Ws2_32.lib")
 
 // Network macros
-#define MAX_UDP_DATA_SIZE (65000u)
-
-#define DEFAULT_BUFLEN 100
-#define DEFAULT_PORT "27015"
-
-#define TAG_SOCK "Sock: "
-// 
-// Server with UDP connection
 //
-#define INPUT_SERVER_PORT     27015 
-#define INPUT_SERVER_IP     "127.0.0.1"
+#ifndef MAX_UDP_DATA_SIZE 
+#define MAX_UDP_DATA_SIZE (65000u)
+#endif
+
+#define TAG_SOCK "LocSock: "
 
 // Socket static variable
 static SOCKET s;
@@ -66,7 +63,7 @@ int SocketUDP_RecvFrom(SOCKET *phSock, char *pDataBuf, int iDataSize,
 }
 
 int SocketUDP_SendTo(SOCKET *phSock, char *pDataBuf, int iDataSize, 
-    sockaddr *pSockClientAddr, int iSockSize) 
+    sockaddr *pSockDestAddr, int iSockSize) 
 {
 
   int iRetVal;
@@ -86,7 +83,7 @@ int SocketUDP_SendTo(SOCKET *phSock, char *pDataBuf, int iDataSize,
     if (iTxLen > MAX_UDP_DATA_SIZE) { iTxLen = MAX_UDP_DATA_SIZE; }
 
     //printf(TAG_SOCK "SendTo %l\n", iTxLen);
-    iRetVal = sendto(*phSock, pSendBuf, iTxLen, 0, pSockClientAddr, iSockSize);
+    iRetVal = sendto(*phSock, pSendBuf, iTxLen, 0, pSockDestAddr, iSockSize);
     if (iRetVal < 0) { return -1; }
 
     pSendBuf  += iRetVal;
@@ -102,15 +99,32 @@ int SocketUDP_SendTo(SOCKET *phSock, char *pDataBuf, int iDataSize,
   return iAccTxLen;
 }
 
-int SocketUDP_ClientRecv(SOCKET *phSock, char *pDataBuf, int iDataSize)
+//int SocketUDP_ClientRecv(SOCKET *phSock, SOCKADDR_IN *phServAddr, int *iLenAddr, char *pDataBuf, int iDataSize)
+//int SocketUDP_ClientRecv(SOCKET *phSock, SOCKADDR_IN *phServAddr, int *iLenAddr, char *pDataBuf, int iDataSize)
+//{  //return SocketUDP_RecvFrom(phSock, pDataBuf, iDataSize, NULL, NULL);}
+
+int SocketUDP_ClientRecv(SockObject *pSockObj, char *pDataBuf, int iDataSize)
 {
-  return SocketUDP_RecvFrom(phSock, pDataBuf, iDataSize, NULL, NULL);
+
+	SOCKET *phSock = &pSockObj->hSock;
+	SOCKADDR_IN *phServAddr = &pSockObj->hServAddr;
+	int *pSockSize = &pSockObj->iLenServAddr;
+	*pSockSize = sizeof(SOCKADDR_IN);
+
+  return SocketUDP_RecvFrom(phSock, pDataBuf, iDataSize, (sockaddr *) phServAddr, pSockSize);
 }
 
 
-int SocketUDP_ClientSend(SOCKET *phSock, char *pDataBuf, int iDataSize)
+//int SocketUDP_ClientSend(SOCKET *phSock, char *pDataBuf, int iDataSize)
+//int SocketUDP_ClientSend(SOCKET *phSock, SOCKADDR_IN *phServAddr, char *pDataBuf, int iDataSize)
+
+int SocketUDP_ClientSend(SockObject *pSockObj, char *pDataBuf, int iDataSize)
 {
-  return SocketUDP_SendTo(phSock, pDataBuf, iDataSize, NULL, 0);
+	SOCKET *phSock = &pSockObj->hSock;
+	SOCKADDR_IN *phServAddr = &pSockObj->hServAddr;
+	int iSockSize = sizeof(SOCKADDR_IN); // TODO pSockObj->iLenServAddr;
+
+  return SocketUDP_SendTo(phSock, pDataBuf, iDataSize, (sockaddr *) phServAddr, iSockSize);
 }
 
 int SocketUDP_Deinit(SOCKET *phSock)
@@ -125,6 +139,44 @@ int SocketUDP_Deinit(SOCKET *phSock)
 }
 
 
+int SocketUDP_InitClient(SockObject *pSockObj)
+{
+	WSADATA wsaData;
+	int iRetVal;
+
+	SOCKET *phSock;
+	SOCKADDR_IN *phServAddr;
+
+	// Initialize Winsock
+	iRetVal = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iRetVal != 0) { goto ret_err; }
+
+	phSock = &(pSockObj->hSock);
+	phServAddr = &(pSockObj->hServAddr);
+
+	// CREATE SOCKET and SAVE in module Object
+	*phSock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (pSockObj->hSock == INVALID_SOCKET) { goto ret_err; }
+
+	memset((char *)&(pSockObj->hServAddr), 0, sizeof(SOCKADDR_IN)); // IMP: to clear server addr 
+
+	phServAddr->sin_family = AF_INET;
+	phServAddr->sin_port = htons(pSockObj->iPortNum); //Port to connect on
+	phServAddr->sin_addr.s_addr = inet_addr(pSockObj->cIPAddr);
+
+	// connect to server 
+	iRetVal = connect(*phSock, (struct sockaddr *)phServAddr, sizeof(SOCKADDR_IN));
+	if (iRetVal < 0) { goto ret_err; }
+	printf(TAG_SOCK "Connected to Server: %s:%d\n", pSockObj->cIPAddr, pSockObj->iPortNum);
+
+	return 0;
+
+ret_err:
+	printf(TAG_SOCK "Error in SocketUDP_ClientInit: %d \n", WSAGetLastError());
+	return -1;
+}
+
+#if 0
 int SocketUDP_InitClient(SOCKET *phSock, SOCKADDR_IN *phServAddr,
     int  iPortNum,   char *pServerIP)
 {
@@ -145,11 +197,11 @@ int SocketUDP_InitClient(SOCKET *phSock, SOCKADDR_IN *phServAddr,
   phServAddr->sin_family      = AF_INET;
   phServAddr->sin_port        = htons(iPortNum); //Port to connect on
   phServAddr->sin_addr.s_addr = inet_addr(pServerIP);
-  phServAddr->sin_port        = IPPROTO_UDP;
 
   // connect to server 
   iRetVal = connect(*phSock, (struct sockaddr *)phServAddr, sizeof(SOCKADDR_IN));
   if (iRetVal < 0) { goto ret_err; }
+  printf(TAG_SOCK "Connected to Server: %s:%d\n", pServerIP, iPortNum);
 
   return 0;
 
@@ -157,7 +209,8 @@ ret_err:
   printf(TAG_SOCK "Error in SocketUDP_ClientInit: %d \n", WSAGetLastError());
   return -1;
 }
-
+#endif
+#if 0
 int SocketUDP_ServerInit()
 {
   WSADATA wsaData;
@@ -193,5 +246,5 @@ int SocketUDP_ServerInit()
 
   return 0;
 }
-
+#endif
 

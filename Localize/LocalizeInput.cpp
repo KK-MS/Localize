@@ -54,6 +54,60 @@ int file_write(std::vector<unsigned char> &buf) {
   return 0;
 }
 
+int LocalizeInput_GetGTData(LocalizeObject *pLocObj)
+{
+	int iRetVal;
+
+	// Network related variables
+	//sockaddr sockClientAddr;
+	//int iLenSockClient = sizeof(sockaddr_in);
+	SOCKET *phSock;
+	SOCKADDR_IN *phServAddr;
+
+	int iPktLen;
+	char *pPktBuf;
+
+	// REQUEST holder
+	char ucReqMsg[11] = REQ_STREAM; // +1 to add null at last
+
+									// Packet details
+	StereoPacket   *pStereoPkt;
+	SockObject     *phSockObj;
+
+	LocalizePacket *pLocPkt;
+	unsigned char  *pFrameL;
+	unsigned char  *pFrameR;
+
+	// Assign the object pointers
+	pStereoPkt = pLocObj->pStereoPacket;
+	pFrameL = pLocObj->pFrameLeft;
+	pFrameR = pLocObj->pFrameRight;
+	pLocPkt = pLocObj->pLocalizePacket;
+	phSock = &(pLocObj->hSockObjStereo.hSock);
+	phSockObj = &(pLocObj->hSockObjStereo);
+
+	// streaming buffer address and its length
+	pPktBuf = (char *)pStereoPkt;
+	iPktLen = sizeof(StereoPacket);
+
+	// SEND THE REQUEST FOR STEREO PACKET
+	//iRetVal = SocketUDP_ClientSend(phSock, phServAddr, ucReqMsg, sizeof(ucReqMsg));
+	iRetVal = SocketUDP_ClientSend(phSockObj, ucReqMsg, sizeof(ucReqMsg));
+	if (iRetVal < 0) { goto ret_err; }
+
+	// RECEIVE STEREO PACKET DATA
+	//iRetVal = SocketUDP_ClientRecv(phSock, phServAddr, pPktBuf, iPktLen);
+	iRetVal = SocketUDP_ClientRecv(phSockObj, pPktBuf, iPktLen);
+	if (iRetVal < 0) { goto ret_err; }
+
+	return 0;
+ret_err:
+	printf(TAG_LOUT "Error: sending %s, ret:%d, NetErr:%d\n", ucReqMsg, iRetVal, WSAGetLastError());
+	return -1;
+
+}
+
+
 int LocalizeInput_GetStream(LocalizeObject *pLocObj)
 {
   int iRetVal;
@@ -62,6 +116,8 @@ int LocalizeInput_GetStream(LocalizeObject *pLocObj)
   //sockaddr sockClientAddr;
   //int iLenSockClient = sizeof(sockaddr_in);
   SOCKET *phSock;
+  SOCKADDR_IN *phServAddr;
+
   int iPktLen;
   char *pPktBuf;
 
@@ -69,8 +125,9 @@ int LocalizeInput_GetStream(LocalizeObject *pLocObj)
   char ucReqMsg[11] = REQ_STREAM; // +1 to add null at last
 
   // Packet details
-  //StereoMetadata *pStereoMeta;
   StereoPacket   *pStereoPkt;
+  SockObject     *phSockObj;
+
   LocalizePacket *pLocPkt;
   unsigned char  *pFrameL;
   unsigned char  *pFrameR;
@@ -80,21 +137,75 @@ int LocalizeInput_GetStream(LocalizeObject *pLocObj)
   pFrameL    = pLocObj->pFrameLeft ;
   pFrameR    = pLocObj->pFrameRight;
   pLocPkt    = pLocObj->pLocalizePacket;
-  phSock     = &(pLocObj->hSockStereo.hSock);
+  phSock     = &(pLocObj->hSockObjStereo.hSock);
+  phSockObj = &(pLocObj->hSockObjStereo);
 
   // streaming buffer address and its length
   pPktBuf = (char *)pStereoPkt;
   iPktLen = sizeof(StereoPacket);
-  //pStereoMeta = &(pStereoPkt->stMetadata.stStereoMetadata);
 
   // SEND THE REQUEST FOR STEREO PACKET
-  //iRetVal = SocketUDP_SendTo(ucReqMsg, sizeof(ucReqMsg),  &sockClientAddr, iLenSockClient);
-  iRetVal = SocketUDP_ClientSend(phSock, ucReqMsg, sizeof(ucReqMsg));
+  //iRetVal = SocketUDP_ClientSend(phSock, phServAddr, ucReqMsg, sizeof(ucReqMsg));
+  iRetVal = SocketUDP_ClientSend(phSockObj, ucReqMsg, sizeof(ucReqMsg));
   if (iRetVal < 0) { goto ret_err; }
 
   // RECEIVE STEREO PACKET DATA
-  //iRetVal = SocketUDP_RecvFrom(pPktBuf, iPktLen, &sockClientAddr, &iLenSockClient);
-  iRetVal = SocketUDP_ClientRecv(phSock, pPktBuf, iPktLen);
+  //iRetVal = SocketUDP_ClientRecv(phSock, phServAddr, pPktBuf, iPktLen);
+  iRetVal = SocketUDP_ClientRecv(phSockObj, pPktBuf, iPktLen);
+  if (iRetVal < 0 ) { goto ret_err; }
+
+  return 0;
+ret_err:
+  printf(TAG_LOUT "Error: sending %s, ret:%d, NetErr:%d\n", ucReqMsg, iRetVal, WSAGetLastError());
+  return -1;
+
+}
+
+int LocalizeInput_GetMapObjects(LocalizeObject *pLocObj)
+{
+  int iRetVal;
+ 
+  // Network related variables
+  //sockaddr sockClientAddr;
+  //int iLenSockClient = sizeof(sockaddr_in);
+  SOCKET *phSock;
+  SOCKADDR_IN *phServAddr;
+
+  int iPktLen;
+  char *pPktBuf;
+
+  // REQUEST holder
+  char ucReqMsg[13] = REQ_TRAFFISIGNS; // +1 to add null at last
+
+  // Packet details
+  StereoPacket   *pStereoPkt;
+  SockObject     *phSockObj;
+
+  LocalizePacket *pLocPkt;
+  unsigned char  *pFrameL;
+  unsigned char  *pFrameR;
+
+  // Assign the object pointers
+  pStereoPkt = pLocObj->pStereoPacket;
+  pFrameL    = pLocObj->pFrameLeft ;
+  pFrameR    = pLocObj->pFrameRight;
+  pLocPkt    = pLocObj->pLocalizePacket;
+  phSock     = &(pLocObj->hSockObjMap.hSock);
+  phSockObj = &(pLocObj->hSockObjMap);
+ 
+  // streaming buffer address and its length
+  pPktBuf = (char *)pStereoPkt;
+  iPktLen = sizeof(StereoPacket);
+
+  // SEND THE REQUEST FOR STEREO PACKET
+  //iRetVal = SocketUDP_ClientSend(phSock, phServAddr, ucReqMsg, sizeof(ucReqMsg));
+  iRetVal = SocketUDP_ClientSend(phSockObj, ucReqMsg, sizeof(ucReqMsg));
+  if (iRetVal < 0) { goto ret_err; }
+
+  // RECEIVE STEREO PACKET DATA
+  //iRetVal = SocketUDP_ClientRecv(phSock, phServAddr, pPktBuf, iPktLen);
+  printf(TAG_LOUT "Waiting to Recv from GTMAP\n");
+  iRetVal = SocketUDP_ClientRecv(phSockObj, pPktBuf, iPktLen);
   if (iRetVal < 0 ) { goto ret_err; }
 
   return 0;
@@ -110,7 +221,7 @@ int LocalizeInput_Deinit(LocalizeObject *pLocObj)
   // Socket interfaces
   SOCKET      *phSock;
 
-  phSock     = &pLocObj->hSockStereo.hSock;
+  phSock     = &pLocObj->hSockObjStereo.hSock;
   SocketUDP_Deinit(phSock);
 
 #ifdef DEBUG_OUTPUT_FILE
@@ -126,9 +237,13 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
   int iRetVal = 0;
 
   // INPUT StereoPacket.
-  StereoMetadata *pStereoMeta;
   StereoPacket   *pStereoPkt;
   LocalizePacket *pLocPkt;
+
+  SockObject *phSockObjStereo;
+  SockObject *phSockObjMap;
+  SockObject *phSockObjIMU;
+
   unsigned char  *pFrameL;
   unsigned char  *pFrameR;
  
@@ -145,7 +260,6 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
   // INPUT Buffer
   // Allocate memory stereo packet, i.e. metadata + jpeg frames bytes
   pStereoPkt     = (StereoPacket *) malloc(sizeof(StereoPacket));
-  pStereoMeta = &(pStereoPkt->stMetadata.stStereoMetadata);
   
   // PROCESSING Buffer
   // Allocate memory for raw frame data
@@ -168,19 +282,44 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
   pLocObj->pFrameLeft      = pFrameL; 
   pLocObj->pFrameRight     = pFrameR;
   pLocObj->pLocalizePacket = pLocPkt;
-
+  phSockObjStereo = &(pLocObj->hSockObjStereo);
+  phSockObjMap = &(pLocObj->hSockObjMap);
+  phSockObjIMU = &(pLocObj->hSockObjIMU);
 
 #if 1
+  phSockObjStereo->iPortNum = SOCK_PORT_STEREO;
+  memcpy(phSockObjStereo->cIPAddr, SOCK_IP_STEREO, strlen(SOCK_IP_STEREO));
+  iRetVal = SocketUDP_InitClient(phSockObjStereo);
+#endif
+
+#if 1
+  phSockObjMap->iPortNum = SOCK_PORT_GTMAP;
+  memcpy(phSockObjMap->cIPAddr, SOCK_IP_GTMAP, strlen(SOCK_IP_GTMAP));
+  iRetVal = SocketUDP_InitClient(phSockObjMap);
+#endif
+
+#if 0
   phSock     = &pLocObj->hSockStereo.hSock;
-  phServAddr = &pLocObj->hSockStereo.hServAddr,
+  phServAddr = &pLocObj->hSockStereo.hServAddr;
   iPortNum   = SOCK_PORT_STEREO;
   memcpy(cIPAddr, SOCK_IP_STEREO, strlen(SOCK_IP_STEREO));
+
+  iRetVal = SocketUDP_InitClient(&pLocObj->hSockStereo, phServAddr, iPortNum, cIPAddr);
+#endif
+
+#if 0
+  phSock = &pLocObj->hSockMap.hSock;
+  phServAddr = &pLocObj->hSockMap.hServAddr;
+  iPortNum = SOCK_PORT_GTMAP;
+  memcpy(cIPAddr, SOCK_IP_GTMAP, strlen(SOCK_IP_GTMAP));
 
   iRetVal = SocketUDP_InitClient(phSock, phServAddr, iPortNum, cIPAddr);
 
 #else
-  iRetVal = SocketUDP_ClientInit();
+ // iRetVal = SocketUDP_ClientInit();
+
 #endif 
+
   if (iRetVal != 0) {
     printf("Error: In SocketUDP_ClientInit\n");
     return -1;

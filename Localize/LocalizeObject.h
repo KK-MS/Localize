@@ -6,20 +6,13 @@
 #include <windows.h>
 
 #include "DataFormat.h"
+#include "SocketUDP.h"
 
 #pragma comment (lib, "Ws2_32.lib")
-
 
 // MACROS
 #define Localize_QUALITY_VALUE (95u) // Quality percentage
 
-typedef struct SockInterfaceStruct {
-  SOCKET      hSock;
-  SOCKADDR_IN hServAddr;
-
-  int    iPortNum;  
-  char   cIPAddr[16]; // IP4 xxx.xxx.xxx.xxx
-} SockObject;
 //
 // Localize needs:
 // 1. Metadat from IMU and Stereo
@@ -42,9 +35,9 @@ typedef struct LocalizeObjectStruct {
   
   // INTERFACING Variables
   // Socket static variable
-  SockObject hSockStereo;
-  SockObject hSockMap;
-  SockObject hSockIMU;
+  SockObject hSockObjStereo;
+  SockObject hSockObjMap;
+  SockObject hSockObjIMU;
 
 } LocalizeObject;
 
@@ -58,6 +51,7 @@ int LocalizeInput_GetStream(LocalizeObject *pLocalizeObject);
 int LocalizeInput_Init(LocalizeObject *pLocalizeObject);
 int LocalizeInput_Deinit(LocalizeObject *pLocalizeObject);
 int LocalizeInput_FromCamera(LocalizeObject *pLocalizeObject);
+int LocalizeInput_GetMapObjects(LocalizeObject *pLocObj);
 
 // Localize output processing function declarations
 
@@ -76,10 +70,16 @@ int SocketUDP_RecvFrom(char *pBuf, int iSize, sockaddr *pSockClientAddr,
 	int *pSockSize);
 int SocketUDP_SendTo(char *pBuf, int iSize, sockaddr *pSockClientAddr,
 	int iSockSize);
+//int SocketUDP_ClientSend(SOCKET *phSock, SOCKADDR_IN *phServAddr, char *pDataBuf, int iDataSize);
+//int SocketUDP_ClientRecv(SOCKET *phSock, SOCKADDR_IN *phServAddr, char *pDataBuf, int iDataSize);
+int SocketUDP_ClientRecv(SockObject *pSockObj, char *pDataBuf, int iDataSize);
+int SocketUDP_ClientSend(SockObject *pSockObj, char *pDataBuf, int iDataSize);
+
 int SocketUDP_Deinit(SOCKET*);
 int SocketUDP_ClientInit();
 int SocketUDP_ServerInit();
-int SocketUDP_ClientRecv(SOCKET* , char* , int );
-int SocketUDP_ClientSend(SOCKET* , char* , int );
-int SocketUDP_InitClient(SOCKET* , SOCKADDR_IN* ,int ,char* );
+//int SocketUDP_ClientRecv(SOCKET* , char* , int );
+//int SocketUDP_ClientSend(SOCKET* , char* , int );
+//int SocketUDP_InitClient(SOCKET* , SOCKADDR_IN* ,int ,char* );
+int SocketUDP_InitClient(SockObject *pSockObj);
 

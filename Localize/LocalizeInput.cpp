@@ -151,6 +151,7 @@ int LocalizeInput_GetStream(LocalizeObject *pLocObj)
 
   // RECEIVE STEREO PACKET DATA
   //iRetVal = SocketUDP_ClientRecv(phSock, phServAddr, pPktBuf, iPktLen);
+  printf(TAG_LOUT " Rx len:%d\n", iPktLen);
   iRetVal = SocketUDP_ClientRecv(phSockObj, pPktBuf, iPktLen);
   if (iRetVal < 0 ) { goto ret_err; }
 
@@ -178,7 +179,7 @@ int LocalizeInput_GetMapObjects(LocalizeObject *pLocObj)
   char ucReqMsg[13] = REQ_TRAFFISIGNS; // +1 to add null at last
 
   // Packet details
-  StereoPacket   *pStereoPkt;
+  GTMapPacket   *pGTMapPkt;
   SockObject     *phSockObj;
 
   LocalizePacket *pLocPkt;
@@ -186,25 +187,27 @@ int LocalizeInput_GetMapObjects(LocalizeObject *pLocObj)
   unsigned char  *pFrameR;
 
   // Assign the object pointers
-  pStereoPkt = pLocObj->pStereoPacket;
-  pFrameL    = pLocObj->pFrameLeft ;
-  pFrameR    = pLocObj->pFrameRight;
+  pGTMapPkt  = pLocObj->pGTMapPacket;
   pLocPkt    = pLocObj->pLocalizePacket;
   phSock     = &(pLocObj->hSockObjMap.hSock);
   phSockObj = &(pLocObj->hSockObjMap);
- 
-  // streaming buffer address and its length
-  pPktBuf = (char *)pStereoPkt;
-  iPktLen = sizeof(StereoPacket);
 
-  // SEND THE REQUEST FOR STEREO PACKET
+ // Fill the packet
+ pGTMapPkt->iRequestType = REQ_GTMAP_MARKS;
+
+  // streaming buffer address and its length
+  pPktBuf = (char *)pGTMapPkt;
+  iPktLen = sizeof(GTMapPacket);
+
+  // SEND THE REQUEST FOR GTMap PACKET
   //iRetVal = SocketUDP_ClientSend(phSock, phServAddr, ucReqMsg, sizeof(ucReqMsg));
-  iRetVal = SocketUDP_ClientSend(phSockObj, ucReqMsg, sizeof(ucReqMsg));
+  //iRetVal = SocketUDP_ClientSend(phSockObj, ucReqMsg, sizeof(ucReqMsg));
+  iRetVal = SocketUDP_ClientSend(phSockObj, pPktBuf, iPktLen);
   if (iRetVal < 0) { goto ret_err; }
 
-  // RECEIVE STEREO PACKET DATA
+  // RECEIVE GTMap PACKET DATA
   //iRetVal = SocketUDP_ClientRecv(phSock, phServAddr, pPktBuf, iPktLen);
-  printf(TAG_LOUT "Waiting to Recv from GTMAP\n");
+  printf(TAG_LOUT "Waiting to Recv from GTMAP. len:%d\n", iPktLen);
   iRetVal = SocketUDP_ClientRecv(phSockObj, pPktBuf, iPktLen);
   if (iRetVal < 0 ) { goto ret_err; }
 
@@ -238,6 +241,7 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
 
   // INPUT StereoPacket.
   StereoPacket   *pStereoPkt;
+  GTMapPacket    *pGTMapPkt;
   LocalizePacket *pLocPkt;
 
   SockObject *phSockObjStereo;
@@ -261,6 +265,9 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
   // Allocate memory stereo packet, i.e. metadata + jpeg frames bytes
   pStereoPkt     = (StereoPacket *) malloc(sizeof(StereoPacket));
   
+  // Allocate memory GTMap packet, i.e. request, metadata
+  pGTMapPkt     = (GTMapPacket *) malloc(sizeof(GTMapPacket));
+
   // PROCESSING Buffer
   // Allocate memory for raw frame data
   pFrameL  = (uchar *) malloc(MAX_FRAME_SIZE);
@@ -279,6 +286,7 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
 
   // fill the object
   pLocObj->pStereoPacket   = pStereoPkt;
+  pLocObj->pGTMapPacket    = pGTMapPkt;
   pLocObj->pFrameLeft      = pFrameL; 
   pLocObj->pFrameRight     = pFrameR;
   pLocObj->pLocalizePacket = pLocPkt;
@@ -289,12 +297,14 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
 #if 1
   phSockObjStereo->iPortNum = SOCK_PORT_STEREO;
   memcpy(phSockObjStereo->cIPAddr, SOCK_IP_STEREO, strlen(SOCK_IP_STEREO));
+  phSockObjStereo->cIPAddr[strlen(SOCK_IP_STEREO)] = '\0';
   iRetVal = SocketUDP_InitClient(phSockObjStereo);
 #endif
 
 #if 1
   phSockObjMap->iPortNum = SOCK_PORT_GTMAP;
   memcpy(phSockObjMap->cIPAddr, SOCK_IP_GTMAP, strlen(SOCK_IP_GTMAP));
+  phSockObjMap->cIPAddr[strlen(SOCK_IP_STEREO)] = '\0';
   iRetVal = SocketUDP_InitClient(phSockObjMap);
 #endif
 

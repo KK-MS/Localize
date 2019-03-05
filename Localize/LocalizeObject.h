@@ -25,6 +25,9 @@ typedef struct LocalizeObjectStruct {
   // Stereo packet containing meta + jpegs frames. 
   StereoPacket *pStereoPacket;
 
+  // GTMap packet
+  GTMapPacket *pGTMapPacket;
+
   // PROCESSING Variables
   unsigned char *pFrameLeft;  // Localize Left camera data 
   unsigned char *pFrameRight; // Localize Right camera data 

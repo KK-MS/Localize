@@ -118,9 +118,11 @@ void LocalizeExecute_Scheduler(void *param)
 		// INPUT: Metadata + JPEG Frames (Right & Left)
 		iRetVal = LocalizeInput_GetStream(pLocalizeObject);
 		if (iRetVal) { goto err_ret; }
+		
 		printf(TAG_LOC "LocalizeProcess_JpegToRaw\n");
 		iRetVal = LocalizeProcess_JpegToRaw(pLocalizeObject);
 		if (iRetVal) { goto err_ret; }
+		
 		printf(TAG_LOC "LocalizeInput_GetMapObjects\n");
 		iRetVal = LocalizeInput_GetMapObjects(pLocalizeObject);
 		if (iRetVal) { goto err_ret; }

@@ -8,6 +8,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+
 #include <windows.h> 
 #include <winsock2.h>
 #include <ws2tcpip.h> // getaddrinfo, includes #include <winsock2.h>
@@ -29,6 +30,21 @@
 static SOCKET s;
 static SOCKADDR_IN servaddr;
 
+int SocketUDP_PrintIpPort(SOCKET *phSock, const char *pTagName) 
+{
+  struct sockaddr_in sin;
+  int len = sizeof(sin);
+
+  if (getsockname(*phSock, (struct sockaddr *)&sin, &len) == -1) {
+    perror("getsockname");
+    return -1;
+  }
+
+  printf(TAG_SOCK"[%s] IP:Port %s:%d\n", pTagName, inet_ntoa(sin.sin_addr), ntohs(sin.sin_port));
+  return 0;
+}
+
+
 int SocketUDP_RecvFrom(SOCKET *phSock, char *pDataBuf, int iDataSize,
     sockaddr *pSockCliAddr, int *pSockSize) 
 {
@@ -48,13 +64,15 @@ int SocketUDP_RecvFrom(SOCKET *phSock, char *pDataBuf, int iDataSize,
 
     if (iRxLen > MAX_UDP_DATA_SIZE) { iRxLen = MAX_UDP_DATA_SIZE; }
 
-    //printf(TAG_SOCK "B4 RecvFrom: len:%d AccLen:%d\n", iRxLen, iAccRxLen);
+    printf(TAG_SOCK "B4 RecvFrom: ReqLen:%d len:%d AccLen:%d\n", iDataSize, iRxLen, iAccRxLen);
     iRetVal = recvfrom(*phSock, pRecvBuf, iRxLen, 0, pSockCliAddr, pSockSize);
+    SocketUDP_PrintIpPort(phSock, "RecvTo");
+    printf(TAG_SOCK"[%s] IP:Port %s:%d\n", "Remote details:", inet_ntoa(((struct sockaddr_in *)pSockCliAddr)->sin_addr), ntohs(((struct sockaddr_in *)pSockCliAddr)->sin_port));
     if (iRetVal < 0) { return -1; }
 
     pRecvBuf  += iRetVal;
     iAccRxLen += iRetVal;
-    //printf(TAG_SOCK "A4 RecvFrom: len:%d AccLen:%d\n", iRxLen, iAccRxLen);
+    printf(TAG_SOCK "A4 RecvFrom: len:%d AccLen:%d, iRetVal:%d\n", iRxLen, iAccRxLen, iRetVal);
 
     if (iRetVal < iRxLen) { break; }
   }
@@ -99,32 +117,26 @@ int SocketUDP_SendTo(SOCKET *phSock, char *pDataBuf, int iDataSize,
   return iAccTxLen;
 }
 
-//int SocketUDP_ClientRecv(SOCKET *phSock, SOCKADDR_IN *phServAddr, int *iLenAddr, char *pDataBuf, int iDataSize)
-//int SocketUDP_ClientRecv(SOCKET *phSock, SOCKADDR_IN *phServAddr, int *iLenAddr, char *pDataBuf, int iDataSize)
-//{  //return SocketUDP_RecvFrom(phSock, pDataBuf, iDataSize, NULL, NULL);}
-
 int SocketUDP_ClientRecv(SockObject *pSockObj, char *pDataBuf, int iDataSize)
 {
-
-	SOCKET *phSock = &pSockObj->hSock;
-	SOCKADDR_IN *phServAddr = &pSockObj->hServAddr;
-	int *pSockSize = &pSockObj->iLenServAddr;
-	*pSockSize = sizeof(SOCKADDR_IN);
+  SOCKET *phSock      = &pSockObj->hSock;
+  SOCKADDR_IN *phServAddr = &pSockObj->hServAddr;
+  int *pSockSize      = &pSockObj->iLenServAddr;
+  *pSockSize = sizeof(SOCKADDR_IN);
 
   return SocketUDP_RecvFrom(phSock, pDataBuf, iDataSize, (sockaddr *) phServAddr, pSockSize);
+
 }
 
 
-//int SocketUDP_ClientSend(SOCKET *phSock, char *pDataBuf, int iDataSize)
-//int SocketUDP_ClientSend(SOCKET *phSock, SOCKADDR_IN *phServAddr, char *pDataBuf, int iDataSize)
-
 int SocketUDP_ClientSend(SockObject *pSockObj, char *pDataBuf, int iDataSize)
 {
-	SOCKET *phSock = &pSockObj->hSock;
-	SOCKADDR_IN *phServAddr = &pSockObj->hServAddr;
-	int iSockSize = sizeof(SOCKADDR_IN); // TODO pSockObj->iLenServAddr;
+  SOCKET *phSock = &pSockObj->hSock;
+  SOCKADDR_IN *phServAddr = &pSockObj->hServAddr;
+  int iSockSize = sizeof(SOCKADDR_IN); // TODO pSockObj->iLenServAddr;
 
   return SocketUDP_SendTo(phSock, pDataBuf, iDataSize, (sockaddr *) phServAddr, iSockSize);
+
 }
 
 int SocketUDP_Deinit(SOCKET *phSock)
@@ -141,39 +153,39 @@ int SocketUDP_Deinit(SOCKET *phSock)
 
 int SocketUDP_InitClient(SockObject *pSockObj)
 {
-	WSADATA wsaData;
-	int iRetVal;
+  WSADATA wsaData;
+  int iRetVal;
 
-	SOCKET *phSock;
-	SOCKADDR_IN *phServAddr;
+  SOCKET *phSock;
+  SOCKADDR_IN *phServAddr;
 
-	// Initialize Winsock
-	iRetVal = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (iRetVal != 0) { goto ret_err; }
+  // Initialize Winsock
+  iRetVal = WSAStartup(MAKEWORD(2, 2), &wsaData);
+  if (iRetVal != 0) { goto ret_err; }
 
-	phSock = &(pSockObj->hSock);
-	phServAddr = &(pSockObj->hServAddr);
+  phSock = &(pSockObj->hSock);
+  phServAddr = &(pSockObj->hServAddr);
 
-	// CREATE SOCKET and SAVE in module Object
-	*phSock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (pSockObj->hSock == INVALID_SOCKET) { goto ret_err; }
+  // CREATE SOCKET and SAVE in module Object
+  *phSock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (pSockObj->hSock == INVALID_SOCKET) { goto ret_err; }
 
-	memset((char *)&(pSockObj->hServAddr), 0, sizeof(SOCKADDR_IN)); // IMP: to clear server addr 
+  memset((char *)&(pSockObj->hServAddr), 0, sizeof(SOCKADDR_IN)); // IMP: to clear server addr 
 
-	phServAddr->sin_family = AF_INET;
-	phServAddr->sin_port = htons(pSockObj->iPortNum); //Port to connect on
-	phServAddr->sin_addr.s_addr = inet_addr(pSockObj->cIPAddr);
+  phServAddr->sin_family = AF_INET;
+  phServAddr->sin_port = htons(pSockObj->iPortNum); //Port to connect on
+  phServAddr->sin_addr.s_addr = inet_addr(pSockObj->cIPAddr);
 
-	// connect to server 
-	iRetVal = connect(*phSock, (struct sockaddr *)phServAddr, sizeof(SOCKADDR_IN));
-	if (iRetVal < 0) { goto ret_err; }
-	printf(TAG_SOCK "Connected to Server: %s:%d\n", pSockObj->cIPAddr, pSockObj->iPortNum);
+  // connect to server 
+  iRetVal = connect(*phSock, (struct sockaddr *)phServAddr, sizeof(SOCKADDR_IN));
+  if (iRetVal < 0) { goto ret_err; }
+  printf(TAG_SOCK "Connected to Server: %s:%d\n", pSockObj->cIPAddr, pSockObj->iPortNum);
 
-	return 0;
+  return 0;
 
 ret_err:
-	printf(TAG_SOCK "Error in SocketUDP_ClientInit: %d \n", WSAGetLastError());
-	return -1;
+  printf(TAG_SOCK "Error in SocketUDP_ClientInit: %d \n", WSAGetLastError());
+  return -1;
 }
 
 #if 0

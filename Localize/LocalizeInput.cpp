@@ -58,9 +58,6 @@ int LocalizeInput_GetGTData(LocalizeObject *pLocObj)
 {
 	int iRetVal;
 
-	// Network related variables
-	//sockaddr sockClientAddr;
-	//int iLenSockClient = sizeof(sockaddr_in);
 	SOCKET *phSock;
 	SOCKADDR_IN *phServAddr;
 
@@ -68,41 +65,37 @@ int LocalizeInput_GetGTData(LocalizeObject *pLocObj)
 	char *pPktBuf;
 
 	// REQUEST holder
-	char ucReqMsg[11] = REQ_STREAM; // +1 to add null at last
+	//char ucReqMsg[17] = REQ_TS_INFO; // { REQ_GTMAP_MARKS }; // +1 to add null at last
 
-									// Packet details
-	StereoPacket   *pStereoPkt;
 	SockObject     *phSockObj;
+	GTMapPacket    *pGTMapPkt;
 
-	LocalizePacket *pLocPkt;
 	unsigned char  *pFrameL;
 	unsigned char  *pFrameR;
 
 	// Assign the object pointers
-	pStereoPkt = pLocObj->pStereoPacket;
-	pFrameL = pLocObj->pFrameLeft;
-	pFrameR = pLocObj->pFrameRight;
-	pLocPkt = pLocObj->pLocalizePacket;
-	phSock = &(pLocObj->hSockObjStereo.hSock);
-	phSockObj = &(pLocObj->hSockObjStereo);
+	pGTMapPkt = pLocObj->pGTMapPacket;
+	phSock = &(pLocObj->hSockObjMap.hSock);
+	phSockObj = &(pLocObj->hSockObjMap);
 
 	// streaming buffer address and its length
-	pPktBuf = (char *)pStereoPkt;
-	iPktLen = sizeof(StereoPacket);
+	pPktBuf = (char *)pGTMapPkt;
+	iPktLen = sizeof(GTMapPacket);
+
+	pGTMapPkt->iRequestType = REQ_GTMAP_MARKS;
+	pGTMapPkt->stImuMetadata.ulTimestamp = pLocObj->pStereoPacket->stMetadata.stImuMetadata.ulTimestamp;
 
 	// SEND THE REQUEST FOR STEREO PACKET
-	//iRetVal = SocketUDP_ClientSend(phSock, phServAddr, ucReqMsg, sizeof(ucReqMsg));
-	iRetVal = SocketUDP_ClientSend(phSockObj, ucReqMsg, sizeof(ucReqMsg));
+	iRetVal = SocketUDP_ClientSend(phSockObj, (char *)pGTMapPkt, sizeof(GTMapPacket));
 	if (iRetVal < 0) { goto ret_err; }
 
 	// RECEIVE STEREO PACKET DATA
-	//iRetVal = SocketUDP_ClientRecv(phSock, phServAddr, pPktBuf, iPktLen);
-	iRetVal = SocketUDP_ClientRecv(phSockObj, pPktBuf, iPktLen);
+	iRetVal = SocketUDP_ClientRecv(phSockObj, (char *)pGTMapPkt, sizeof(GTMapPacket));
 	if (iRetVal < 0) { goto ret_err; }
 
 	return 0;
 ret_err:
-	printf(TAG_LOUT "Error: sending %s, ret:%d, NetErr:%d\n", ucReqMsg, iRetVal, WSAGetLastError());
+	printf(TAG_LOUT "Error: sending GTMAP Request: %d, ret:%d, NetErr:%d\n", pGTMapPkt->iRequestType, iRetVal, WSAGetLastError());
 	return -1;
 
 }
@@ -155,6 +148,9 @@ int LocalizeInput_GetStream(LocalizeObject *pLocObj)
   iRetVal = SocketUDP_ClientRecv(phSockObj, pPktBuf, iPktLen);
   if (iRetVal < 0 ) { goto ret_err; }
 
+  // Print the unique timestamp value
+  printf(TAG_LOUT " ######## TS:%d\n", pStereoPkt->stMetadata.stImuMetadata.ulTimestamp);
+
   return 0;
 ret_err:
   printf(TAG_LOUT "Error: sending %s, ret:%d, NetErr:%d\n", ucReqMsg, iRetVal, WSAGetLastError());
@@ -189,6 +185,7 @@ int LocalizeInput_GetMapObjects(LocalizeObject *pLocObj)
   // Assign the object pointers
   pGTMapPkt  = pLocObj->pGTMapPacket;
   pLocPkt    = pLocObj->pLocalizePacket;
+
   phSock     = &(pLocObj->hSockObjMap.hSock);
   phSockObj = &(pLocObj->hSockObjMap);
 
@@ -202,6 +199,11 @@ int LocalizeInput_GetMapObjects(LocalizeObject *pLocObj)
   // SEND THE REQUEST FOR GTMap PACKET
   //iRetVal = SocketUDP_ClientSend(phSock, phServAddr, ucReqMsg, sizeof(ucReqMsg));
   //iRetVal = SocketUDP_ClientSend(phSockObj, ucReqMsg, sizeof(ucReqMsg));
+  
+  //pGTMapPkt->stImuMetadata.ulTimestamp++;
+  pGTMapPkt->stImuMetadata.ulTimestamp = pLocObj->pStereoPacket->stMetadata.stImuMetadata.ulTimestamp;
+  printf(TAG_LOUT " LL->GG TS:%d\n", pGTMapPkt->stImuMetadata.ulTimestamp);
+
   iRetVal = SocketUDP_ClientSend(phSockObj, pPktBuf, iPktLen);
   if (iRetVal < 0) { goto ret_err; }
 
@@ -290,6 +292,7 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
   pLocObj->pFrameLeft      = pFrameL; 
   pLocObj->pFrameRight     = pFrameR;
   pLocObj->pLocalizePacket = pLocPkt;
+
   phSockObjStereo = &(pLocObj->hSockObjStereo);
   phSockObjMap = &(pLocObj->hSockObjMap);
   phSockObjIMU = &(pLocObj->hSockObjIMU);

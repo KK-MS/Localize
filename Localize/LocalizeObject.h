@@ -31,6 +31,12 @@ typedef struct LocalizeObjectStruct {
   // PROCESSING Variables
   unsigned char *pFrameLeft;  // Localize Left camera data 
   unsigned char *pFrameRight; // Localize Right camera data 
+  
+  //Mat mFrameLeft;
+  //Mat mFrameRight;
+  
+  unsigned int uiWidthFrame;
+  unsigned int uiHeightFrame;
 
   // OUTPUt Variables
   // Pointer to Localize packet
@@ -67,6 +73,7 @@ int LocalizeOutput_Packet(LocalizeObject *pLocalizeObject);
 int LocalizeProcess_ToJpeg(LocalizeObject *pLocalizeObject);
 int LocalizeProcess_Request(LocalizeObject *pLocalizeObject);
 int LocalizeProcess_JpegToRaw(LocalizeObject *pLocalizeObject);
+int LocalizeProcess_FindMarks(LocalizeObject *pLocalizeObject);
 
 // Network related API declarations
 int SocketUDP_RecvFrom(char *pBuf, int iSize, sockaddr *pSockClientAddr,

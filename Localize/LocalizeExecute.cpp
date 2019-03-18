@@ -8,6 +8,7 @@
 #include <process.h>
 
 #include <opencv2/highgui.hpp>
+#include <opencv2/opencv.hpp> // cvtColor, Guassian, blur, edge
 
 #include "DataFormat.h"
 #include "LocalizeObject.h"
@@ -109,24 +110,31 @@ void LocalizeExecute_Scheduler(void *param)
 	int iRetVal = 0;
 
 	LocalizeObject *pLocalizeObject = (LocalizeObject *)param;
+	int iLoopCount = 0;
 
 	printf(TAG_LOC "In localize_scheduler\n");
 
 	while (1) {
+		
+		printf("\n\n -----------------------------------------------\n");
 
-		printf(TAG_LOC "LocalizeInput_GetStream\n");
 		// INPUT: Metadata + JPEG Frames (Right & Left)
+		printf(TAG_LOC "LocalizeInput_GetStream\n");
 		iRetVal = LocalizeInput_GetStream(pLocalizeObject);
-		if (iRetVal) { goto err_ret; }
+		//if (iRetVal) { goto err_ret; }
 		
 		printf(TAG_LOC "LocalizeProcess_JpegToRaw\n");
 		iRetVal = LocalizeProcess_JpegToRaw(pLocalizeObject);
 		if (iRetVal) { goto err_ret; }
 		
+	
 		printf(TAG_LOC "LocalizeInput_GetMapObjects\n");
 		iRetVal = LocalizeInput_GetMapObjects(pLocalizeObject);
 		if (iRetVal) { goto err_ret; }
 
+		printf(TAG_LOC "LocalizeProcess_FindMarks\n");
+		iRetVal = LocalizeProcess_FindMarks(pLocalizeObject);
+		if (iRetVal) { goto err_ret; }
 #if 0
 		// GET METADATA
 		if (localize_input_request_metadata(req_meta, res_meta, len_meta) < 0) {
@@ -202,6 +210,43 @@ int main()
 	LocalizeExecute_Start(pLocalizeObject);
 
 	cv::waitKey(0);
+
+	return 0;
+}
+
+int main1()
+{
+	Mat frame;
+	Mat edges;
+
+	VideoCapture   hVLeft;
+	int iVideoIDLeft = 0; // Camera ID 0
+
+    // Open the left side video input
+	hVLeft.open(iVideoIDLeft);
+	if (!hVLeft.isOpened()) {
+		printf("Error: Couldn't open video:%d\n", iVideoIDLeft); return -1;
+	}
+
+	// get the initial frame to know the camera frame values
+	hVLeft.read(frame);
+	
+	namedWindow("edges", 1);
+	for (;;)
+	{
+
+		hVLeft >> frame; // get a new frame from camera
+		
+		cvtColor(frame, edges, COLOR_BGR2GRAY);
+		
+		GaussianBlur(edges, edges, Size(7, 7), 1.5, 1.5);
+		
+		Canny(edges, edges, 0, 30, 3);
+		
+		imshow("edges", edges);
+
+		if (waitKey(30) >= 0) break;
+	}
 
 	return 0;
 }

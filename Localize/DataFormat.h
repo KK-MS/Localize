@@ -28,6 +28,7 @@
 #define REQ_FRAME_LEFT   "frame_left"
 #define REQ_FRAME_RIGHT  "frame_right"
 #define REQ_TRAFFISIGNS  "trafficSigns"
+#define REQ_TS_INFO      "trafficSignsInfo"
 
 #define REQ_GTMAP_BASE    (400u)
 #define REQ_GTMAP_MARKS   (REQ_GTMAP_BASE + 1u)

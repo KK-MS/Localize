@@ -1,6 +1,8 @@
 
 
 #include <opencv2/highgui.hpp>      //for imshow
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
 
 #include "DataFormat.h"
 #include "LocalizeObject.h"
@@ -11,8 +13,11 @@ using namespace cv;
 // Macros
 #define TAG_SPRS "SPrs: "
 #define DEBUG_LOCALIZE_JPEG_DB (1u)
+#define WINDOW_JPEG_DB_LEFT   "Debug JPEG to RAW Left"
 #define WINDOW_JPEG_DB_RIGHT "Debug JPEG to RAW Right"
-#define WINDOW_JPEG_DB_LEFT "Debug JPEG to RAW Left"
+
+#define WINDOW_CIRCLE_DB_LEFT "Debug Circle Left"
+#define WINDOW_CIRCLE_DB_RIGHT "Debug Circle Right"
 
 
 // FUNCTIONS
@@ -119,6 +124,56 @@ int LocalizeProcess_JpegToRaw(LocalizeObject *pLocalizeObject)
 	  iJpegSize,
 	  pJpegRead[0], pJpegRead[1], pJpegRead[2], pJpegRead[3],
 	  pJpegRead[iJpegSize - 4], pJpegRead[iJpegSize - 3], pJpegRead[iJpegSize - 2], pJpegRead[iJpegSize - 1]);
+  
+  pLocalizeObject->uiWidthFrame = mDecodedImageLeft.cols;
+  pLocalizeObject->uiHeightFrame = mDecodedImageLeft.rows;
+  //pLocalizeObject->mFrameLeft = mDecodedImageLeft;
+  //pLocalizeObject->mFrameRight = mDecodedImageRight;
+
+	return 0;
+}
+
+int LocalizeProcess_CalcDist(LocalizeObject *pLocalizeObject)
+{
+	return 0;
+}
+
+int LocalizeProcess_FindMarks(LocalizeObject *pLocalizeObject)
+{
+	int isCircle = 1;
+	unsigned char  *pFrameL;
+	unsigned char  *pFrameR;
+	
+	pFrameL = pLocalizeObject->pFrameLeft;
+	pFrameR = pLocalizeObject->pFrameRight;
+
+	Mat mGrayScaleLeft(Size(pLocalizeObject->uiWidthFrame, pLocalizeObject->uiHeightFrame), CV_8UC1, pFrameL);
+	Mat mGrayScaleRight(Size(pLocalizeObject->uiWidthFrame, pLocalizeObject->uiHeightFrame), CV_8UC1, pFrameR);
+	Mat mCircle;
+
+	// First: Circle or Square
+	if (isCircle)
+	/// Reduce the noise so we avoid false circle detection
+	GaussianBlur(mGrayScaleRight, mCircle, Size(9, 9), 2, 2);
+
+	vector<Vec3f> circles;
+
+	/// Apply the Hough Transform to find the circles
+	HoughCircles(mCircle, circles, CV_HOUGH_GRADIENT, 1, mCircle.rows / 8, 200, 100, 0, 0);
+	
+	printf("LOC PRO: Found circles: %d\n", circles.size());
+	/// Draw the circles detected
+	for (size_t i = 0; i < circles.size(); i++)
+	{
+		Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+		int radius = cvRound(circles[i][2]);
+		// circle center
+		circle(mGrayScaleRight, center, 3, Scalar(0, 255, 0), -1, 8, 0);
+		// circle outline
+		circle(mGrayScaleRight, center, radius, Scalar(0, 0, 255), 3, 8, 0);
+	}
+
+	imshow(WINDOW_CIRCLE_DB_RIGHT, mGrayScaleRight);
 
 	return 0;
 }

@@ -100,12 +100,14 @@ int SocketUDP_SendTo(SOCKET *phSock, char *pDataBuf, int iDataSize,
 
     if (iTxLen > MAX_UDP_DATA_SIZE) { iTxLen = MAX_UDP_DATA_SIZE; }
 
-    //printf(TAG_SOCK "SendTo %l\n", iTxLen);
+	printf(TAG_SOCK "B4 sendto: iDataSize:%d len:%d AccLen:%d\n", iDataSize, iTxLen, iAccTxLen);
+	SocketUDP_PrintIpPort(phSock, "SendTo");
     iRetVal = sendto(*phSock, pSendBuf, iTxLen, 0, pSockDestAddr, iSockSize);
     if (iRetVal < 0) { return -1; }
 
     pSendBuf  += iRetVal;
     iAccTxLen += iRetVal;
+	printf(TAG_SOCK "A4 sendto: iRetVal:%d len:%d AccLen:%d\n", iRetVal, iTxLen, iAccTxLen);
 
     if (iRetVal < iTxLen) { 
       // Should not happend, Track it!!. 
@@ -135,7 +137,8 @@ int SocketUDP_ClientSend(SockObject *pSockObj, char *pDataBuf, int iDataSize)
   SOCKADDR_IN *phServAddr = &pSockObj->hServAddr;
   int iSockSize = sizeof(SOCKADDR_IN); // TODO pSockObj->iLenServAddr;
 
-  return SocketUDP_SendTo(phSock, pDataBuf, iDataSize, (sockaddr *) phServAddr, iSockSize);
+  //return SocketUDP_SendTo(phSock, pDataBuf, iDataSize, (sockaddr *) phServAddr, iSockSize);
+  return SocketUDP_SendTo(phSock, pDataBuf, iDataSize, NULL, NULL);
 
 }
 
@@ -179,7 +182,9 @@ int SocketUDP_InitClient(SockObject *pSockObj)
   // connect to server 
   iRetVal = connect(*phSock, (struct sockaddr *)phServAddr, sizeof(SOCKADDR_IN));
   if (iRetVal < 0) { goto ret_err; }
+  
   printf(TAG_SOCK "Connected to Server: %s:%d\n", pSockObj->cIPAddr, pSockObj->iPortNum);
+  SocketUDP_PrintIpPort(phSock, "Init");
 
   return 0;
 
@@ -260,3 +265,65 @@ int SocketUDP_ServerInit()
 }
 #endif
 
+// Error code links:
+// https://docs.microsoft.com/en-us/windows/desktop/debug/system-error-codes--0-499-
+//
+// https://docs.microsoft.com/de-de/windows/desktop/WinSock/windows-sockets-error-codes-2
+// WSAEINTR 10004: Interrupted function call. 
+//    A blocking operation was interrupted by a call to WSACancelBlockingCall.
+// WSAEACCES 10013: Permission denied.
+//    An attempt was made to access a socket in a way forbidden by its access permissions.
+//    An example is using a broadcast address for sendto without broadcast permission being set using setsockopt(SO_BROADCAST).
+//    Another possible reason for the WSAEACCES error is that when the bind 
+//    function is called(on Windows NT 4.0 with SP4 and later), another 
+//    application, service, or kernel mode driver is bound to the same address
+//    with exclusive access. Such exclusive access is a new feature of Windows 
+//    NT 4.0 with SP4 and later, and is implemented by using the 
+//    SO_EXCLUSIVEADDRUSE option.
+// WSAEFAULT 10014: Bad address. The system detected an invalid pointer address 
+//    in attempting to use a pointer argument of a call. 
+//    This error occurs if an application passes an invalid pointer value, 
+//    or if the length of the buffer is too small. For instance, if the length 
+//    of an argument, which is a sockaddr structure, is smaller than the sizeof(sockaddr).
+// WSAEINVAL 10022: Invalid argument. Some invalid argument was supplied
+//   (for example, specifying an invalid level to the setsockopt function). In some instances, 
+//   it also refers to the current state of the socketfor instance, calling accept on a socket 
+//   that is not listening.
+// WSAENOTSOCK 10038: Socket operation on nonsocket.
+// WSAEMSGSIZE 10040: Message too long.
+//   A message sent on a datagram socket was larger than the internal message 
+//   buffer or some other network limit, or the buffer used to receive a 
+//   datagram was smaller than the datagram itself.
+// WSAEPROTONOSUPPORT 10043: Protocol not supported.
+//   The requested protocol has not been configured into the system, or no 
+//   implementation for it exists.
+//   e.g. A socket call requests a SOCK_DGRAM socket, but specifies a stream protocol.
+// WSAEOPNOTSUPP 10045: Operation not supported.
+//   The attempted operation is not supported for the type of object referenced.
+//   Usually this occurs when a socket descriptor to a socket that cannot 
+//   support this operation is trying to accept a connection on a datagram socket.
+// WSAEAFNOSUPPORT 10047: Address family not supported by protocol family.
+//    An address incompatible with the requested protocol was used. 
+//    All sockets are created with an associated address family 
+//    (i.e. AF_INET for Internet Protocols) and a generic protocol type
+//    (i.e. SOCK_STREAM). This error is returned if an incorrect protocol is 
+//    explicitly requested in the socket call, or if an address of the wrong 
+//    family is used for a socket, for example, in sendto.
+// WSAEADDRNOTAVAIL 10049: Cannot assign requested address.
+//    The requested address is not valid in its context. This normally results
+//    from an attempt to bind to an address that is not valid for the local 
+//    computer. This can also result from connect, sendto, WSAConnect, 
+//    WSAJoinLeaf, or WSASendTo when the remote address or port is not valid 
+//    for a remote computer(for example, address or port 0).
+// WSAECONNRESET 10054: Connection reset by peer.
+//    An existing connection was forcibly closed by the remote host. This 
+//    normally results if the peer application on the remote host is suddenly
+//    stopped, the host is rebooted, the host or remote network interface is 
+//    disabled, or the remote host uses a hard close (see setsockopt for more 
+//    information on the SO_LINGER option on the remote socket).This error may
+//    also result if a connection was broken due to keep - alive activity detecting a failure while one or more operations are in progress.Operations that were in progress fail with WSAENETRESET.Subsequent operations fail with WSAECONNRESET.
+// WSAENOTCONN 10057: Socket is not connected. A request to send or receive 
+//    data was disallowed because the socket is not connected and (when 
+//    sending on a datagram socket using sendto) no address was supplied.
+//    Any other type of operation might also return this errorfor example, 
+//    setsockopt setting SO_KEEPALIVE if the connection has been reset.

@@ -128,9 +128,9 @@ void LocalizeExecute_Scheduler(void *param)
 		if (iRetVal) { goto err_ret; }
 		
 	
-		printf(TAG_LOC "LocalizeInput_GetMapObjects\n");
-		iRetVal = LocalizeInput_GetMapObjects(pLocalizeObject);
-		if (iRetVal) { goto err_ret; }
+	//	printf(TAG_LOC "LocalizeInput_GetMapObjects\n");
+	//	iRetVal = LocalizeInput_GetMapObjects(pLocalizeObject);
+	//	if (iRetVal) { goto err_ret; }
 
 		printf(TAG_LOC "LocalizeProcess_FindMarks\n");
 		iRetVal = LocalizeProcess_FindMarks(pLocalizeObject);

@@ -301,14 +301,16 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
   phSockObjStereo->iPortNum = SOCK_PORT_STEREO;
   memcpy(phSockObjStereo->cIPAddr, SOCK_IP_STEREO, strlen(SOCK_IP_STEREO));
   phSockObjStereo->cIPAddr[strlen(SOCK_IP_STEREO)] = '\0';
-  iRetVal = SocketUDP_InitClient(phSockObjStereo);
+  //iRetVal = SocketUDP_InitClient(phSockObjStereo);
+  iRetVal = SocketUDP_ConnectServer(phSockObjStereo);
 #endif
 
 #if 1
   phSockObjMap->iPortNum = SOCK_PORT_GTMAP;
   memcpy(phSockObjMap->cIPAddr, SOCK_IP_GTMAP, strlen(SOCK_IP_GTMAP));
   phSockObjMap->cIPAddr[strlen(SOCK_IP_STEREO)] = '\0';
-  iRetVal = SocketUDP_InitClient(phSockObjMap);
+  //iRetVal = SocketUDP_InitClient(phSockObjMap);
+  iRetVal = SocketUDP_ConnectServer(phSockObjMap);
 #endif
 
 #if 0
@@ -317,7 +319,8 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
   iPortNum   = SOCK_PORT_STEREO;
   memcpy(cIPAddr, SOCK_IP_STEREO, strlen(SOCK_IP_STEREO));
 
-  iRetVal = SocketUDP_InitClient(&pLocObj->hSockStereo, phServAddr, iPortNum, cIPAddr);
+  //iRetVal = SocketUDP_InitClient(&pLocObj->hSockStereo, phServAddr, iPortNum, cIPAddr);
+  iRetVal = SocketUDP_ConnectServer(&pLocObj->hSockStereo, phServAddr, iPortNum, cIPAddr);
 #endif
 
 #if 0
@@ -327,6 +330,7 @@ int LocalizeInput_Init(LocalizeObject *pLocObj)
   memcpy(cIPAddr, SOCK_IP_GTMAP, strlen(SOCK_IP_GTMAP));
 
   iRetVal = SocketUDP_InitClient(phSock, phServAddr, iPortNum, cIPAddr);
+  iRetVal = SocketUDP_ConnectServer(phSock, phServAddr, iPortNum, cIPAddr);
 
 #else
  // iRetVal = SocketUDP_ClientInit();

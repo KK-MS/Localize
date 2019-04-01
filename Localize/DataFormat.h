@@ -1,8 +1,9 @@
 #pragma once
 
-#define FRAME_WIDTH    (1080u)
+#define FRAME_TYPE     (16) // CV_8UC3
+#define FRAME_WIDTH    (1280u)
 #define FRAME_HEIGHT   (720u)
-#define FRAME_CHANNELS (1u) // 1 => Grayscale
+#define FRAME_CHANNELS (3u) // 1 => Grayscale, 3=> Color RGB/HSI
 #define FRAME_SIZE     (FRAME_WIDTH * FRAME_HEIGHT * FRAME_CHANNELS)
 #define MAX_FRAME_SIZE FRAME_SIZE
 
@@ -34,7 +35,7 @@
 #define REQ_GTMAP_MARKS   (REQ_GTMAP_BASE + 1u)
 #define REQ_GTMAP_CALC    (REQ_GTMAP_BASE + 2u)
 
-#define MAX_REQ_SIZE MAX_FRAME_SIZE
+#define MAX_REQ_CMD_SIZE (64u)
 
 typedef unsigned char uchar;
 
@@ -47,10 +48,12 @@ typedef struct ImuMetadata {
 } ImuMetadata;
 
 typedef struct StereoMetadata {
+  unsigned int  uiStereoPktSize; // Metadata + Image stream
+  
   // Image packet. Written by stereo
   unsigned int  uiLeftJpegSize;
   unsigned int  uiRightJpegSize;
-  //unsigned int  uiJpegsSize;
+  
 
   // Image features. Written by stereo
   unsigned int  uiFrameWidth;

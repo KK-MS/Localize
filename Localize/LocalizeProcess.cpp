@@ -12,7 +12,7 @@ using namespace cv;
 
 // Macros
 #define TAG_SPRS "SPrs: "
-#define DEBUG_LOCALIZE_JPEG_DB (1u)
+//#define DEBUG_LOCALIZE_JPEG_DB (1u)
 #define WINDOW_JPEG_DB_LEFT   "Debug JPEG to RAW Left"
 #define WINDOW_JPEG_DB_RIGHT "Debug JPEG to RAW Right"
 
@@ -70,7 +70,7 @@ int LocalizeProcess_JpegToRaw(LocalizeObject *pLocalizeObject)
 
 
   // RIGHT: Decode JPEG to RAW
-  mDecodedImageRight = imdecode(rawDataRight, false);
+  mDecodedImageRight = imdecode(rawDataRight, cv::IMREAD_UNCHANGED);
   
   if (mDecodedImageRight.data == NULL) {
       // Error reading raw image data
@@ -101,7 +101,7 @@ int LocalizeProcess_JpegToRaw(LocalizeObject *pLocalizeObject)
   Mat rawDataLeft(1, iJpegSize, CV_8UC1, (void*)pJpegRead);
 
   // LEFT: Decode JPEG to RAW
-  mDecodedImageLeft = imdecode(rawDataLeft, false);
+  mDecodedImageLeft = imdecode(rawDataLeft, cv::IMREAD_UNCHANGED);
 
   if (mDecodedImageLeft.data == NULL) {
 	  // Error reading raw image data

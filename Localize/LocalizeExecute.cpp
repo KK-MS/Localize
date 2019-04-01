@@ -72,7 +72,15 @@ void ImageShowDebug(LocalizeObject *pLocalizeObject)
 	StereoMetadata *pStereoMeta;
 	unsigned char  *pFrameL;
 	unsigned char  *pFrameR;
+	int iFrameType;
 
+#if (FRAME_CHANNELS == 1u)
+	iFrameType = CV_8UC1;
+#elif  (FRAME_CHANNELS == 3u)
+	iFrameType = CV_8UC3;
+#else
+Error: in FRAME_CHANNELS
+#endif 	
 	pLocPkt     = pLocalizeObject->pLocalizePacket;
 	pStereoPkt  = pLocalizeObject->pStereoPacket;
 	pMeta       = &pStereoPkt->stMetadata;
@@ -83,7 +91,7 @@ void ImageShowDebug(LocalizeObject *pLocalizeObject)
 
 	printf("Ex1 %x %x %x %x i:%d\n", pFrameL[0], pFrameL[1], pFrameL[2], pFrameL[3], pStereoMeta->uiFrameBytes);
 	
-	Mat mGrayScaleLeft(Size(pStereoMeta->uiFrameWidth, pStereoMeta->uiFrameHeight), CV_8UC1, pFrameL);
+	Mat mGrayScaleLeft(Size(pStereoMeta->uiFrameWidth, pStereoMeta->uiFrameHeight), iFrameType, pFrameL);
 
 #if DEBUG_LOCALIZE_INPUT
 	imshow(WINDOW_LOCALIZE_INPUT, mGrayScaleLeft);
@@ -121,7 +129,7 @@ void LocalizeExecute_Scheduler(void *param)
 		// INPUT: Metadata + JPEG Frames (Right & Left)
 		printf(TAG_LOC "LocalizeInput_GetStream\n");
 		iRetVal = LocalizeInput_GetStream(pLocalizeObject);
-		//if (iRetVal) { goto err_ret; }
+		if (iRetVal) { getchar(); goto err_ret; }
 		
 		printf(TAG_LOC "LocalizeProcess_JpegToRaw\n");
 		iRetVal = LocalizeProcess_JpegToRaw(pLocalizeObject);
@@ -132,8 +140,8 @@ void LocalizeExecute_Scheduler(void *param)
 	//	iRetVal = LocalizeInput_GetMapObjects(pLocalizeObject);
 	//	if (iRetVal) { goto err_ret; }
 
-		printf(TAG_LOC "LocalizeProcess_FindMarks\n");
-		iRetVal = LocalizeProcess_FindMarks(pLocalizeObject);
+		//printf(TAG_LOC "LocalizeProcess_FindMarks\n");
+		//iRetVal = LocalizeProcess_FindMarks(pLocalizeObject);
 		if (iRetVal) { goto err_ret; }
 #if 0
 		// GET METADATA
@@ -156,7 +164,7 @@ void LocalizeExecute_Scheduler(void *param)
 		if (cv::waitKey(10) == 27) { // delay: Tune it.
 			break;
 		}
-		
+		//getchar();
 	}
 
 err_ret:

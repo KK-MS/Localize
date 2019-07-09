@@ -147,23 +147,23 @@ int LocalizeInput_GetStream(LocalizeObject *pLocObj)
 
 	iRetVal = SocketUDP_ClientRecv(phSockObj, pPktBuf, iPktLen);
 	if (iRetVal < 0) { goto ret_err; }
-	printf(TAG_LOUT " Rx len:%d\n", iRetVal);
+	//printf(TAG_LOUT " Rx len:%d\n", iRetVal);
 
 	if (pStereoPkt->stMetadata.stStereoMetadata.uiStereoPktSize != iRetVal) {
-		printf(TAG_LOUT "Error: Expected:%d, Received:%d\n", pStereoPkt->stMetadata.stStereoMetadata.uiStereoPktSize, iRetVal);
+		printf(TAG_LOUT "Error: LocalizeInput_GetStream Expected:%d, Received:%d\n", pStereoPkt->stMetadata.stStereoMetadata.uiStereoPktSize, iRetVal);
 		fflush(stdout);
 		getchar();
-		goto ret_err;
+		// goto ret_err; // Todo uncomment
 	}
 
   // Print the unique timestamp value
-  printf(TAG_LOUT " ######## TS:%d, Len:%d\n", pStereoPkt->stMetadata.stImuMetadata.ulTimestamp, pStereoPkt->stMetadata.stStereoMetadata.uiLeftJpegSize);
+  printf(TAG_LOUT " ######## TS:%d, RxLen:%d, jpegSize:%d\n", pStereoPkt->stMetadata.stImuMetadata.ulTimestamp, iRetVal, pStereoPkt->stMetadata.stStereoMetadata.uiLeftJpegSize);
   //std::flush;		
   fflush(stdout);
 
   return 0;
 ret_err:
-  printf(TAG_LOUT "Error: %s, ret:%d, NetErr:%d\n", ucReqMsg, iRetVal, WSAGetLastError());
+  printf(TAG_LOUT "Error: LocalizeInput_GetStream %s, ret:%d, NetErr:%d\n", ucReqMsg, iRetVal, WSAGetLastError());
   if (WSAGetLastError() == WSAETIMEDOUT) {
 	  printf(TAG_LOUT "Packet drop!!\n");
 	  //Log the packet drop & continue by returining success

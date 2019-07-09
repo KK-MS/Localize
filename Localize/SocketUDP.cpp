@@ -71,7 +71,7 @@ int SocketUDP_RecvFrom(SOCKET *phSock, char *pDataBuf, int iDataSize,
 
     pRecvBuf  += iRetVal;
     iAccRxLen += iRetVal;
-    printf(TAG_SOCK "A4 RecvFrom: len:%d AccLen:%d, iRetVal:%d\n", iRxLen, iAccRxLen, iRetVal);
+    //printf(TAG_SOCK "A4 RecvFrom: len:%d AccLen:%d, iRetVal:%d\n", iRxLen, iAccRxLen, iRetVal);
 
     if (iRetVal < iRxLen) { break; }
   }
@@ -318,7 +318,10 @@ ret_err:
 //    stopped, the host is rebooted, the host or remote network interface is
 //    disabled, or the remote host uses a hard close (see setsockopt for more
 //    information on the SO_LINGER option on the remote socket).This error may
-//    also result if a connection was broken due to keep - alive activity detecting a failure while one or more operations are in progress.Operations that were in progress fail with WSAENETRESET.Subsequent operations fail with WSAECONNRESET.
+//    also result if a connection was broken due to keep - alive activity 
+//    detecting a failure while one or more operations are in progress.
+//    Operations that were in progress fail with WSAENETRESET. Subsequent 
+//    operations fail with WSAECONNRESET.
 // WSAENOTCONN 10057: Socket is not connected. A request to send or receive
 //    data was disallowed because the socket is not connected and (when
 //    sending on a datagram socket using sendto) no address was supplied.

@@ -116,24 +116,33 @@ void ImageShowDebug(LocalizeObject *pLocalizeObject) {}
 void LocalizeExecute_Scheduler(void *param)
 {
 	int iRetVal = 0;
+	double dStartTime; // = double(getTickCount());
+	double dEndTime; // = double(getTickCount());
+	double dDelayTime;
 
 	LocalizeObject *pLocalizeObject = (LocalizeObject *)param;
 	int iLoopCount = 0;
 
 	printf(TAG_LOC "In localize_scheduler\n");
-
+	
+	/////////////////////////////////////////////////////////
 	while (1) {
 		
 		printf("\n\n -----------------------------------------------\n");
 
 		// INPUT: Metadata + JPEG Frames (Right & Left)
-		printf(TAG_LOC "LocalizeInput_GetStream\n");
+		//printf(TAG_LOC "LocalizeInput_GetStream\n");
+		dStartTime = double(getTickCount());
 		iRetVal = LocalizeInput_GetStream(pLocalizeObject);
+		dEndTime = double(getTickCount());
+		dDelayTime = (dEndTime - dStartTime) * 1000 / getTickFrequency();		
+		std::cout << "Loc: Input Time: " << dDelayTime << " ms." << std::endl;
+
 		if (iRetVal) { getchar(); goto err_ret; }
 		
-		printf(TAG_LOC "LocalizeProcess_JpegToRaw\n");
+		//printf(TAG_LOC "LocalizeProcess_JpegToRaw\n");
 		iRetVal = LocalizeProcess_JpegToRaw(pLocalizeObject);
-		if (iRetVal) { goto err_ret; }
+		//if (iRetVal) { goto err_ret; }
 		
 	
 	//	printf(TAG_LOC "LocalizeInput_GetMapObjects\n");
